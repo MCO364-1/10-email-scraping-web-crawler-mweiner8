@@ -34,5 +34,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="jsoup" level="application" />
+    <orderEntry type="library" name="microsoft.sqlserver.mssql.jdbc" level="application" />
   </component>
 </module>
