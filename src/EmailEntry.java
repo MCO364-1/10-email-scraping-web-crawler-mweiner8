@@ -12,6 +12,18 @@ public class EmailEntry {
         timeStamp = time;
     }
 
+    public String getEmailAddress() {
+        return emailAddress;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public Timestamp getTimeStamp() {
+        return timeStamp;
+    }
+
     @Override
     public String toString(){
         return String.format("Email: %s;\tSource: %s;\tTime Received: %s", emailAddress, sourceUrl, timeStamp);
