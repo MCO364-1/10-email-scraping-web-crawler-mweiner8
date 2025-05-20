@@ -1,0 +1,19 @@
+Avi Weiner Challenges and Decisions:
+
+- The main part of the crawler is a Queue which has the websites to visit and because it's a queue, I use a breadth-first search.
+    To ensure that I don't visit a website that I already visited, I have one Set keep track of ones that are already visited and I check
+    everything against that Set before entering it into the queue. I also have a Set which has the same data as the Queue, so I can know
+    if something will be entered into the Queue twice and I can prevent that.
+
+- I know that there are many domains for websites and emails, but through my testing I saw that there are a lot of things that have the
+    same structure as a website or email address but aren't (such as an image) so to try to limit my results I configured my Regex to only
+    check for the common domains of .com, .org, .gov, .net, and .edu.
+
+- To save database connections I enter all the emails into the database in one command at the end of the program
+
+- To ensure consistent data, I convert everything to all lowercase before saving it
+
+- I put in some extra 'catch' statements to get some variety and specificity with the error messages received with certain urls that
+    either don't exist or don't work with Jsoup. (I've noticed that X never works. It gives a 400 error.)
+
+- I had to add a shutdown and awaitTermination to attempt to close the open threads once I have the desired number of emails

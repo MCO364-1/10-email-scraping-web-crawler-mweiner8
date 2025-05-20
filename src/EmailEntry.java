@@ -2,14 +2,20 @@ import java.sql.Timestamp;
 import java.util.Objects;
 
 public class EmailEntry {
+    private final int id;
     private final String emailAddress;
     private final String sourceUrl;
     private final Timestamp timeStamp;
 
-    public EmailEntry(String email, String url, Timestamp time){
+    public EmailEntry(int id, String email, String url, Timestamp time){
+        this.id = id;
         emailAddress = email;
         sourceUrl = url;
         timeStamp = time;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getEmailAddress() {
@@ -26,7 +32,7 @@ public class EmailEntry {
 
     @Override
     public String toString(){
-        return String.format("Email: %s;\tSource: %s;\tTime Received: %s", emailAddress, sourceUrl, timeStamp);
+        return String.format("ID: %d; Email: %s;\tSource: %s;\tTime Received: %s", id, emailAddress, sourceUrl, timeStamp);
     }
 
     @Override
