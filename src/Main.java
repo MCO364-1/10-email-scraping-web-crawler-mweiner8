@@ -7,10 +7,7 @@ import org.jsoup.nodes.Element;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,63 +15,79 @@ import java.util.regex.Pattern;
 import java.util.*;
 
 public class Main {
+    static Set<String> visitedSites = Collections.synchronizedSet(new HashSet<>());
+    static ConcurrentLinkedQueue<String> sitesQueue = new ConcurrentLinkedQueue<>();
+    //static LinkedBlockingDeque<String> sitesQueue2 = new LinkedBlockingDeque<>(10_000);
+    static Set<EmailEntry> emails = Collections.synchronizedSet(new HashSet<>());
+
     public static void main(String[] args) throws InterruptedException, IOException {
         String startUrl = "https://touro.edu".toLowerCase();
-        Set<String> visitedSites = Collections.synchronizedSet(new HashSet<>());
-        Set<String> sitesToVisit = Collections.synchronizedSet(new HashSet<>());
-        sitesToVisit.add(startUrl);
-        ConcurrentLinkedQueue<String> sitesQueue = new ConcurrentLinkedQueue<>();
+
+        //Set<String> sitesToVisit = Collections.synchronizedSet(new HashSet<>());
+        //sitesToVisit.add(startUrl);
+
         sitesQueue.offer(startUrl);
-        Set<EmailEntry> emails = Collections.synchronizedSet(new HashSet<>());
+        //sitesQueue2.offer(startUrl);
+
         final Pattern SITE_PATTERN = Pattern.compile("href=\"https?://\\S*(?:\\.com|\\.edu|\\.gov|\\.org|\\.net)\\S*\"", Pattern.CASE_INSENSITIVE);
         final Pattern EMAIL_PATTERN = Pattern.compile("[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+(?:(com)|org|edu|gov|net)", Pattern.CASE_INSENSITIVE);
-        final int NUM_EMAILS = 10000;
-        AtomicInteger websiteCounter = new AtomicInteger(0);
+        final int NUM_EMAILS = 10_000;
+        //AtomicInteger websiteCounter = new AtomicInteger(0);
         //AtomicInteger emailCounter = new AtomicInteger(0);
 
         try (ExecutorService executor = Executors.newCachedThreadPool()) {
             while (emails.size() < NUM_EMAILS) {
                 executor.execute(() -> {
                     String theURL = sitesQueue.poll();
+                    //String theURL = sitesQueue2.poll();
+                    while (visitedSites.contains(theURL)){
+                        theURL = sitesQueue.poll();
+                        //theURL = sitesQueue2.poll();
+                    }
                     visitedSites.add(theURL);
-                    sitesToVisit.remove(theURL);
+                    //sitesToVisit.remove(theURL);
                     if (!Objects.equals(theURL, null)) {
                         try {
-                            Document doc = Jsoup.connect(theURL).userAgent("Mozilla").get();
+                            //Document doc = Jsoup.connect(theURL).userAgent("Mozilla").get();
                             //String title = doc.title();
                             //System.out.println(title);
                             //System.out.printf("Thread: %s; Website #%d: %s\n", Thread.currentThread().getName(), websiteCounter.incrementAndGet(), theURL);
                             //Element body = doc.body();
                             //String html = body.outerHtml();
-                            String html = doc.outerHtml();
-                            int websiteNumber = websiteCounter.incrementAndGet();
-                            System.out.println("Website #: " + websiteNumber);
+                            //String html = doc.outerHtml();
+                            String html2 = Jsoup.connect(theURL).userAgent("Mozilla").get().body().outerHtml();
+                            //int websiteNumber = websiteCounter.incrementAndGet();
+                            //System.out.println("Website #: " + websiteNumber);
 
-                            Matcher matcher = SITE_PATTERN.matcher(html);
+                            Matcher matcher = SITE_PATTERN.matcher(html2);
                             while (matcher.find()) {
                                 String urlLong = matcher.group();
                                 String url = urlLong.substring(6, urlLong.length() - 1).toLowerCase();
-                                if (!visitedSites.contains(url) && !sitesToVisit.contains(url)) {
-                                    sitesQueue.add(url);
-                                    sitesToVisit.add(url);
+                                if (!visitedSites.contains(url)){// && !sitesToVisit.contains(url)) {
+                                    sitesQueue.offer(url);
+                                    //sitesQueue2.offer(url);
+                                    //sitesToVisit.add(url);
                                 }
                             }
 
-                            matcher = EMAIL_PATTERN.matcher(html);
+                            matcher = EMAIL_PATTERN.matcher(html2);
                             while (matcher.find() && emails.size() < NUM_EMAILS) {
-                                String emailAddress = matcher.group().toLowerCase();
-                                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+                                //String emailAddress = matcher.group().toLowerCase();
                                 int id = emails.size() + 1; //emailCounter.incrementAndGet();
-                                EmailEntry email = new EmailEntry(id, emailAddress, theURL, timestamp);
-                                if (emails.add(email)) {
+                                //EmailEntry email = new EmailEntry(id, matcher.group().toLowerCase(), theURL, new Timestamp(System.currentTimeMillis()));
+                                if (emails.add(new EmailEntry(id, matcher.group().toLowerCase(), theURL, new Timestamp(System.currentTimeMillis())))) {
+                                    System.out.printf("Email #%,d on website #%,d\n", id, visitedSites.size());
                                     //System.out.printf("Email #%d: %s\n", id, emailAddress);
-                                    System.out.printf("From thread %s and website #%d:\n\t%s\n", Thread.currentThread().getName(), websiteNumber, email);
+                                    //System.out.printf("From thread %s and website #%d:\n\t%s\n", Thread.currentThread().getName(), visitedSites.size(), email);
                                 }
                             }
                         } catch (HttpStatusException e) {
                             //System.out.printf("Error Status Code %d for URL: %s\n", e.getStatusCode(), e.getUrl());
                         } catch (UnsupportedMimeTypeException e) {
                             //System.out.printf("Unsupported Mime Type %s for URL %s\n", e.getMimeType(), e.getUrl());
+                        } catch (OutOfMemoryError e) {
+                            System.out.println(e.getMessage());
+                            //System.out.printf("%s %s; Visited Sites: %,d; Sites Queue Size: %,d; Number of Emails %,d\n", Thread.currentThread().getName(), e.getMessage(), visitedSites.size(), sitesQueue.size(), emails.size());
                         } catch (Exception e) {
                             //System.out.println(e.getMessage());
                         }
