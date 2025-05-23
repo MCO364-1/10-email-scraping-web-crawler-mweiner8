@@ -1,0 +1,39 @@
+Avi Weiner Challenges and Decisions:
+
+- The main part of the crawler is a Queue which has the websites to visit and because it's a queue, I use a breadth-first search.
+    To ensure that I don't visit a website that I already visited, I have a Set keep track of ones that are already visited and I check
+    everything against that Set before entering it into the queue. I also check it when de-queueing to make sure that I haven't already visited
+    that site. (I originally had another Set to prevent doubles from entering the Queue, but I got rid of it when I had storage problems in
+    case that was related to the issue. I don't think it was, but I didn't care to put it back in)
+
+- I know that there are many domains for websites and emails, but through my testing I saw that there are a lot of things that have the
+    same structure as a website or email address but aren't (such as an image) so to try to limit my results I configured my Regex to only
+    check for the common domains of .com, .org, .gov, .net, and .edu.
+
+- In case an error would occur when loading the emails to the database, in order to not lose the saved emails I first save them all to a file
+    and then load them to the database from there
+
+- To save database connections I enter the emails into the database 100 at a time at the end of the program
+
+- Because SQL strings need to be surrounded by single quotes, if a link has an apostrophe in it, it'll mess up the command. I therefore had
+    to give my EmailEntry class a SQL-friendly getSourceURL method which escapes the apostrophes in the links if there are any
+
+- To ensure consistent data, I convert everything to all lowercase before saving it
+
+- I put in some extra 'catch' statements to get some variety and specificity with the error messages received with certain urls that
+    either don't exist or don't work with Jsoup. (I've noticed that X (formerly known as Twitter) never works. It gives a 400 error.)
+
+- I put a check into the program so that it won't add new tasks to the ExecutorService's queue unless there's a link available to go to
+    because otherwise a lot of garbage, useless threads will be created which wastes time and memory.
+
+- It appears that even when I would have the correct number of emails and my while loop would end, the threads that were created before
+    would still run. For some reason, they would take a long time to finish their tasks. In attempt to solve this, I decided to use a
+    ThreadPoolExecutor to which I can give a specific queue to use for its tasks that I can clear when I want to in the hope that that'll
+    prevent useless tasks from executing. In addition, I put shutdown() and shutdownNow() calls all over the program in the hope that the
+    useless threads will stop. I don't know which ones to the trick, but the way it is now did make it work eventually. (At one point I started
+    logging the threads that found the emails to see which ones were doing the work, and I noticed that midway through, some of the threads
+    just disappear from the log and I don't see them afterward. These threads seemed to be the ones which didn't shut down right away when I
+    wanted them to, so I'd have to wait for them to finish whatever mysterious tasks they were doing. During the attempt at 10,000 emails that
+    finally worked, the email getting took just over 4 hours, but there were still 3 threads outstanding to close before the emails could be
+    saved. 2 of them stopped within the next 3 hours, but the last one was still going, so I had to go to sleep leaving it running in the hope
+    that it'll stop eventually and by the morning it had finally finished.)
