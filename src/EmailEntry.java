@@ -1,7 +1,8 @@
+import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.Objects;
 
-public class EmailEntry {
+public class EmailEntry implements Serializable {
     private final int id;
     private final String emailAddress;
     private final String sourceUrl;
@@ -23,6 +24,14 @@ public class EmailEntry {
     }
 
     public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public String getSourceUrlSql(){
+        int index = sourceUrl.indexOf('\'');
+        if (index > -1){
+            return sourceUrl.replaceAll("'", "''");
+        }
         return sourceUrl;
     }
 
